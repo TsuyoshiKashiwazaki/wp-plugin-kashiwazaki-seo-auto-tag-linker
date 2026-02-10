@@ -3,7 +3,7 @@
  * Plugin Name: Kashiwazaki SEO Auto Tag Linker
  * Plugin URI: https://www.tsuyoshikashiwazaki.jp
  * Description: 投稿コンテンツ内のタグ名に一致するテキストを自動的にタグアーカイブページへのリンクに変換し、内部リンク構造を強化するSEOプラグインです。
- * Version: 1.0.0
+ * Version: 1.0.1
  * Author: 柏崎剛 (Tsuyoshi Kashiwazaki)
  * Author URI: https://www.tsuyoshikashiwazaki.jp/profile/
  * Text Domain: kashiwazaki-seo-auto-tag-linker
@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 // 定数
 define( 'KSATL_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'KSATL_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
-define( 'KSATL_VERSION', '1.0.0' );
+define( 'KSATL_VERSION', '1.0.1' );
 define( 'KSATL_OPTION_NAME', 'ksatl_options' );
 define( 'KSATL_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
 
@@ -32,6 +32,9 @@ function ksatl_get_default_options() {
 		'min_tag_length'    => 3,
 		'excluded_tags'     => '',
 		'post_types'        => array( 'post' ),
+		'link_color_mode'    => 'inherit',
+		'link_color_custom'  => '#333333',
+		'link_underline_style' => 'dashed',
 	);
 }
 
@@ -75,9 +78,30 @@ add_action( 'wp_head', 'ksatl_output_frontend_css' );
  * フロントエンドにCSS を出力（自動タグリンクの破線スタイル）
  */
 function ksatl_output_frontend_css() {
+	$options    = get_option( KSATL_OPTION_NAME, ksatl_get_default_options() );
+	$color_mode = isset( $options['link_color_mode'] ) ? $options['link_color_mode'] : 'inherit';
+	$color_css  = 'inherit';
+
+	if ( 'custom' === $color_mode && ! empty( $options['link_color_custom'] ) ) {
+		$color_css = sanitize_hex_color( $options['link_color_custom'] );
+		if ( ! $color_css ) {
+			$color_css = 'inherit';
+		}
+	}
+	$underline_style = isset( $options['link_underline_style'] ) ? $options['link_underline_style'] : 'dashed';
+	$allowed_styles  = array( 'solid', 'dashed', 'dotted', 'double', 'wavy', 'none' );
+	if ( ! in_array( $underline_style, $allowed_styles, true ) ) {
+		$underline_style = 'dashed';
+	}
+
+	if ( 'none' === $underline_style ) {
+		$decoration_css = 'text-decoration:none!important';
+	} else {
+		$decoration_css = 'text-decoration:underline ' . $underline_style . '!important;text-decoration-thickness:1px!important;text-underline-offset:3px;text-decoration-color:rgba(127,127,127,.5)!important';
+	}
 	?>
 	<style id="ksatl-auto-link-css">
-	a.ksatl-auto-link{text-decoration:underline dashed!important;text-decoration-thickness:1px!important;text-underline-offset:3px;text-decoration-color:rgba(127,127,127,.5)!important}
+	a.ksatl-auto-link{color:<?php echo esc_attr( $color_css ); ?>!important;<?php echo $decoration_css; ?>}
 	</style>
 	<?php
 }

@@ -7,7 +7,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * 管理メニューに設定ページを追加
  */
 function ksatl_add_admin_menu() {
-	add_menu_page(
+	$hook = add_menu_page(
 		'Kashiwazaki SEO Auto Tag Linker 設定',
 		'Kashiwazaki SEO Auto Tag Linker',
 		'manage_options',
@@ -16,6 +16,16 @@ function ksatl_add_admin_menu() {
 		'dashicons-tag',
 		81
 	);
+
+	add_action( 'admin_print_scripts-' . $hook, 'ksatl_enqueue_color_picker' );
+}
+
+/**
+ * 設定ページでカラーピッカーを読み込む
+ */
+function ksatl_enqueue_color_picker() {
+	wp_enqueue_style( 'wp-color-picker' );
+	wp_enqueue_script( 'wp-color-picker' );
 }
 
 /**
@@ -81,6 +91,30 @@ function ksatl_register_settings() {
 		'ksatl_post_types_field_callback',
 		'ksatl_settings_page',
 		'ksatl_general_section'
+	);
+
+	// スタイル設定セクション
+	add_settings_section(
+		'ksatl_style_section',
+		'スタイル設定',
+		'__return_null',
+		'ksatl_settings_page'
+	);
+
+	add_settings_field(
+		'ksatl_link_color_mode_field',
+		'リンクの文字色',
+		'ksatl_link_color_mode_field_callback',
+		'ksatl_settings_page',
+		'ksatl_style_section'
+	);
+
+	add_settings_field(
+		'ksatl_link_underline_style_field',
+		'下線のスタイル',
+		'ksatl_link_underline_style_field_callback',
+		'ksatl_settings_page',
+		'ksatl_style_section'
 	);
 }
 
@@ -157,7 +191,7 @@ function ksatl_excluded_tags_field_callback() {
 	$excluded = isset( $options['excluded_tags'] ) ? $options['excluded_tags'] : '';
 	?>
 	<textarea id="ksatl_excluded_tags" name="<?php echo esc_attr( KSATL_OPTION_NAME ); ?>[excluded_tags]" rows="3" cols="50" class="large-text"><?php echo esc_textarea( $excluded ); ?></textarea>
-	<p class="description">自動リンクの対象外にするタグ名をカンマ区切りで入力してください。例: タグA, タグB, タグC</p>
+	<p class="description">ここに入力したタグは、本文中に出現してもリンクに変換されません。カンマ区切りで複数指定できます。例: WordPress, CSS, HTML</p>
 	<?php
 }
 
@@ -193,6 +227,60 @@ function ksatl_post_types_field_callback() {
 		document.querySelectorAll('.ksatl-post-type-cb').forEach(function(cb) { cb.checked = false; });
 	});
 	</script>
+	<?php
+}
+
+/** リンクの文字色モードフィールド */
+function ksatl_link_color_mode_field_callback() {
+	$options    = get_option( KSATL_OPTION_NAME, ksatl_get_default_options() );
+	$color_mode = isset( $options['link_color_mode'] ) ? $options['link_color_mode'] : 'inherit';
+	$custom_color = isset( $options['link_color_custom'] ) ? $options['link_color_custom'] : '#333333';
+	$option_name = esc_attr( KSATL_OPTION_NAME );
+	?>
+	<fieldset>
+		<label style="display:block;margin-bottom:8px;">
+			<input type="radio" name="<?php echo $option_name; ?>[link_color_mode]" value="inherit" <?php checked( $color_mode, 'inherit' ); ?> class="ksatl-color-mode-radio">
+			テキスト色を継承（周囲の文字と同じ色）
+		</label>
+		<label style="display:block;margin-bottom:8px;">
+			<input type="radio" name="<?php echo $option_name; ?>[link_color_mode]" value="custom" <?php checked( $color_mode, 'custom' ); ?> class="ksatl-color-mode-radio">
+			カスタムカラー
+		</label>
+	</fieldset>
+	<div id="ksatl-custom-color-wrap" style="margin-top:8px;<?php echo 'custom' !== $color_mode ? 'display:none;' : ''; ?>">
+		<input type="text" id="ksatl_link_color_custom" name="<?php echo $option_name; ?>[link_color_custom]" value="<?php echo esc_attr( $custom_color ); ?>" class="ksatl-color-picker">
+	</div>
+	<script>
+	jQuery(document).ready(function($){
+		$('.ksatl-color-picker').wpColorPicker();
+		$('.ksatl-color-mode-radio').on('change',function(){
+			$('#ksatl-custom-color-wrap').toggle($(this).val()==='custom');
+		});
+	});
+	</script>
+	<?php
+}
+
+/** 下線のスタイルフィールド */
+function ksatl_link_underline_style_field_callback() {
+	$options = get_option( KSATL_OPTION_NAME, ksatl_get_default_options() );
+	$style   = isset( $options['link_underline_style'] ) ? $options['link_underline_style'] : 'dashed';
+	$option_name = esc_attr( KSATL_OPTION_NAME );
+
+	$styles = array(
+		'dashed' => '破線（デフォルト）',
+		'solid'  => '実線',
+		'dotted' => '点線',
+		'double' => '二重線',
+		'wavy'   => '波線',
+		'none'   => 'なし',
+	);
+	?>
+	<select id="ksatl_link_underline_style" name="<?php echo $option_name; ?>[link_underline_style]">
+		<?php foreach ( $styles as $value => $label ) : ?>
+			<option value="<?php echo esc_attr( $value ); ?>" <?php selected( $style, $value ); ?>><?php echo esc_html( $label ); ?></option>
+		<?php endforeach; ?>
+	</select>
 	<?php
 }
 
@@ -237,6 +325,25 @@ function ksatl_sanitize_options( $input ) {
 	if ( empty( $new_input['post_types'] ) ) {
 		$new_input['post_types'] = array( 'post' );
 	}
+
+	// リンクの文字色モード
+	$new_input['link_color_mode'] = ( isset( $input['link_color_mode'] ) && 'custom' === $input['link_color_mode'] )
+		? 'custom'
+		: 'inherit';
+
+	// カスタムカラー
+	$new_input['link_color_custom'] = isset( $input['link_color_custom'] )
+		? sanitize_hex_color( $input['link_color_custom'] )
+		: $defaults['link_color_custom'];
+	if ( ! $new_input['link_color_custom'] ) {
+		$new_input['link_color_custom'] = $defaults['link_color_custom'];
+	}
+
+	// 下線のスタイル
+	$allowed_styles = array( 'solid', 'dashed', 'dotted', 'double', 'wavy', 'none' );
+	$new_input['link_underline_style'] = ( isset( $input['link_underline_style'] ) && in_array( $input['link_underline_style'], $allowed_styles, true ) )
+		? $input['link_underline_style']
+		: $defaults['link_underline_style'];
 
 	return $new_input;
 }
