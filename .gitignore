@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+vendor/
+package.json
+package-lock.json
+composer.lock
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Development / Testing
+.playwright-mcp/
+test-*.js
+
+# Development screenshots (keep only settings-page.png and auto-link-working.png)
+ksatl-dashed-body.png
+ksatl-dashed-check.png
+ksatl-dashed-fixed.png
+ksatl-dashed-thin.png
+ksatl-dashed-underline-content.png
+ksatl-dashed-underline.png
