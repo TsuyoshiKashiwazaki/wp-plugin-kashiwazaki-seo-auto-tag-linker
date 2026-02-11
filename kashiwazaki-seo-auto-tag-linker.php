@@ -3,7 +3,7 @@
  * Plugin Name: Kashiwazaki SEO Auto Tag Linker
  * Plugin URI: https://www.tsuyoshikashiwazaki.jp
  * Description: 投稿コンテンツ内のタグ名に一致するテキストを自動的にタグアーカイブページへのリンクに変換し、内部リンク構造を強化するSEOプラグインです。
- * Version: 1.0.1
+ * Version: 1.0.2
  * Author: 柏崎剛 (Tsuyoshi Kashiwazaki)
  * Author URI: https://www.tsuyoshikashiwazaki.jp/profile/
  * Text Domain: kashiwazaki-seo-auto-tag-linker
@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 // 定数
 define( 'KSATL_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'KSATL_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
-define( 'KSATL_VERSION', '1.0.1' );
+define( 'KSATL_VERSION', '1.0.2' );
 define( 'KSATL_OPTION_NAME', 'ksatl_options' );
 define( 'KSATL_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
 
@@ -31,6 +31,7 @@ function ksatl_get_default_options() {
 		'link_target'       => '_self',
 		'min_tag_length'    => 3,
 		'excluded_tags'     => '',
+		'exclude_self_tags' => true,
 		'post_types'        => array( 'post' ),
 		'link_color_mode'    => 'inherit',
 		'link_color_custom'  => '#333333',

@@ -3,6 +3,17 @@
 このプロジェクトのすべての変更はこのファイルに記録されます。
 フォーマットは [Keep a Changelog](https://keepachangelog.com/ja/1.0.0/) に基づいています。
 
+## [1.0.2] - 2026-02-11
+
+### Added
+- 自記事タグ除外オプション（記事自身に付与されたタグへのリンクを除外するか設定可能に）
+- タグ名の部分一致防止処理（長いタグ処理後に未リンク出現箇所をプレースホルダーで保護）
+
+### Changed
+- 設定画面をpostboxカードレイアウトに刷新（基本設定・リンク動作・対象と除外・スタイル設定の4セクション）
+- 投稿タイプ選択UIを3列グリッド・スクロール表示に変更
+- 投稿タイプ名のみ表示、スラッグはtitle属性に退避（行を短縮）
+
 ## [1.0.1] - 2026-02-10
 
 ### Added
@@ -27,5 +38,6 @@
 - 特殊HTMLタグ内のテキストを自動リンク対象外にする安全処理（`<a>`, `<h1>`〜`<h6>`, `<script>`, `<style>`, `<code>`, `<pre>`, `<textarea>`, `<select>`, `<button>`, `<svg>`, `<iframe>`, `<canvas>`, `<video>`, `<audio>`, `<object>`, `<noscript>`, `<template>`）
 - 管理画面からの設定ページ
 
-[1.0.1]: https://github.com/TsuyoshiKashiwazaki/wp-plugin-kashiwazaki-seo-auto-tag-linker/releases/tag/v1.0.1-dev
+[1.0.2]: https://github.com/TsuyoshiKashiwazaki/wp-plugin-kashiwazaki-seo-auto-tag-linker/releases/tag/v1.0.2-dev
+[1.0.1]: https://github.com/TsuyoshiKashiwazaki/wp-plugin-kashiwazaki-seo-auto-tag-linker/releases/tag/v1.0.1
 [1.0.0]: https://github.com/TsuyoshiKashiwazaki/wp-plugin-kashiwazaki-seo-auto-tag-linker/releases/tag/v1.0.0

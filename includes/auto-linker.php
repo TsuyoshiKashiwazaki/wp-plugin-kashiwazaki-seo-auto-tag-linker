@@ -49,6 +49,25 @@ function ksatl_auto_link_tags( $content ) {
 		$content
 	);
 
+	$tag_placeholders = array();
+
+	// 現在記事のタグ名をプレースホルダーで保護（自記事タグが除外される場合、テキストとして残り部分一致の原因になる）
+	$exclude_self = isset( $options['exclude_self_tags'] ) ? (bool) $options['exclude_self_tags'] : true;
+	$current_tags = $exclude_self ? get_the_tags() : false;
+	if ( ! empty( $current_tags ) && ! is_wp_error( $current_tags ) ) {
+		$current_tag_names = wp_list_pluck( $current_tags, 'name' );
+		usort( $current_tag_names, function ( $a, $b ) {
+			return mb_strlen( $b ) - mb_strlen( $a );
+		} );
+		foreach ( $current_tag_names as $ctag_name ) {
+			if ( mb_strpos( $content, $ctag_name ) !== false ) {
+				$key = '<!--KSATL_TG' . count( $tag_placeholders ) . '-->';
+				$tag_placeholders[ $key ] = $ctag_name;
+				$content = ksatl_protect_tag_text( $content, $ctag_name, $key );
+			}
+		}
+	}
+
 	foreach ( $tags as $tag ) {
 		// コンテンツにタグ名が存在しなければスキップ（preg_split・DB問い合わせを回避）
 		if ( mb_strpos( $content, $tag->name ) === false ) {
@@ -64,6 +83,18 @@ function ksatl_auto_link_tags( $content ) {
 		if ( $replaced !== false ) {
 			$content = $replaced;
 		}
+
+		// 未リンクのタグ名をプレースホルダーで保護（短いタグの部分一致を防止）
+		if ( mb_strpos( $content, $tag->name ) !== false ) {
+			$key = '<!--KSATL_TG' . count( $tag_placeholders ) . '-->';
+			$tag_placeholders[ $key ] = $tag->name;
+			$content = ksatl_protect_tag_text( $content, $tag->name, $key );
+		}
+	}
+
+	// タグ名プレースホルダーを復元（短いタグの部分一致防止用）
+	if ( ! empty( $tag_placeholders ) ) {
+		$content = str_replace( array_keys( $tag_placeholders ), array_values( $tag_placeholders ), $content );
 	}
 
 	// プレースホルダーを復元
@@ -84,11 +115,14 @@ function ksatl_get_eligible_tags( $options ) {
 		return array();
 	}
 
-	// 現在記事のタグIDを取得
-	$current_tags    = get_the_tags();
+	// 現在記事のタグIDを取得（設定で除外が有効な場合のみ）
+	$exclude_self = isset( $options['exclude_self_tags'] ) ? (bool) $options['exclude_self_tags'] : true;
 	$current_tag_ids = array();
-	if ( ! empty( $current_tags ) && ! is_wp_error( $current_tags ) ) {
-		$current_tag_ids = wp_list_pluck( $current_tags, 'term_id' );
+	if ( $exclude_self ) {
+		$current_tags = get_the_tags();
+		if ( ! empty( $current_tags ) && ! is_wp_error( $current_tags ) ) {
+			$current_tag_ids = wp_list_pluck( $current_tags, 'term_id' );
+		}
 	}
 
 	// 除外タグリストを準備
@@ -128,6 +162,38 @@ function ksatl_get_eligible_tags( $options ) {
 	} );
 
 	return $eligible_tags;
+}
+
+/**
+ * テキストノード内のタグ名をプレースホルダーに置換する（リンク内は除外）
+ *
+ * 長いタグを処理した後、残りの未リンク出現箇所をプレースホルダーで保護し、
+ * 短いタグによる部分一致を防止する。
+ */
+function ksatl_protect_tag_text( $content, $tag_name, $placeholder ) {
+	$parts = preg_split( '/(<[^>]+>)/s', $content, -1, PREG_SPLIT_DELIM_CAPTURE );
+	$inside_a = 0;
+
+	foreach ( $parts as $i => $part ) {
+		if ( isset( $part[0] ) && $part[0] === '<' ) {
+			if ( preg_match( '/^<a[\s>]/i', $part ) ) {
+				$inside_a++;
+			} elseif ( stripos( $part, '</a' ) === 0 ) {
+				$inside_a = max( 0, $inside_a - 1 );
+			}
+			continue;
+		}
+
+		if ( $inside_a > 0 ) {
+			continue;
+		}
+
+		if ( mb_strpos( $part, $tag_name ) !== false ) {
+			$parts[ $i ] = str_replace( $tag_name, $placeholder, $part );
+		}
+	}
+
+	return implode( '', $parts );
 }
 
 /**

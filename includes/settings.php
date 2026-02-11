@@ -86,6 +86,14 @@ function ksatl_register_settings() {
 	);
 
 	add_settings_field(
+		'ksatl_exclude_self_tags_field',
+		'自記事タグの除外',
+		'ksatl_exclude_self_tags_field_callback',
+		'ksatl_settings_page',
+		'ksatl_general_section'
+	);
+
+	add_settings_field(
 		'ksatl_post_types_field',
 		'対象投稿タイプ',
 		'ksatl_post_types_field_callback',
@@ -126,14 +134,111 @@ function ksatl_render_settings_page() {
 		return;
 	}
 	?>
-	<div class="wrap">
+	<style>
+	.ksatl-settings .postbox { margin-bottom: 20px; }
+	.ksatl-settings .postbox .hndle { cursor: default; padding: 8px 12px; margin: 0; font-size: 14px; border-bottom: 1px solid #c3c4c7; }
+	.ksatl-settings .postbox .inside { padding: 0 12px 12px; margin: 0; }
+	.ksatl-settings .postbox .inside .form-table { margin-top: 0; }
+	.ksatl-settings .postbox .inside .form-table th { padding-left: 0; }
+	.ksatl-post-types-grid {
+		display: grid;
+		grid-template-columns: repeat(3, 1fr);
+		gap: 4px 16px;
+		max-height: 240px;
+		overflow-y: auto;
+		border: 1px solid #c3c4c7;
+		border-radius: 4px;
+		background: #f6f7f7;
+		padding: 10px 12px;
+	}
+	.ksatl-post-types-grid label {
+		display: flex;
+		align-items: center;
+		gap: 4px;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+	</style>
+
+	<div class="wrap ksatl-settings">
 		<h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
 		<form action="options.php" method="post">
-			<?php
-			settings_fields( KSATL_OPTION_NAME );
-			do_settings_sections( 'ksatl_settings_page' );
-			submit_button( '変更を保存' );
-			?>
+			<?php settings_fields( KSATL_OPTION_NAME ); ?>
+
+			<!-- 基本設定 -->
+			<div class="postbox">
+				<h2 class="hndle">基本設定</h2>
+				<div class="inside">
+					<table class="form-table"><tbody>
+						<tr>
+							<th scope="row">自動タグリンク機能</th>
+							<td><?php ksatl_enabled_field_callback(); ?></td>
+						</tr>
+					</tbody></table>
+				</div>
+			</div>
+
+			<!-- リンク動作 -->
+			<div class="postbox">
+				<h2 class="hndle">リンク動作</h2>
+				<div class="inside">
+					<table class="form-table"><tbody>
+						<tr>
+							<th scope="row">同じタグの最大リンク回数</th>
+							<td><?php ksatl_max_links_per_tag_field_callback(); ?></td>
+						</tr>
+						<tr>
+							<th scope="row">最小タグ文字数</th>
+							<td><?php ksatl_min_tag_length_field_callback(); ?></td>
+						</tr>
+						<tr>
+							<th scope="row">リンクの開き方</th>
+							<td><?php ksatl_link_target_field_callback(); ?></td>
+						</tr>
+						<tr>
+							<th scope="row">自記事タグの除外</th>
+							<td><?php ksatl_exclude_self_tags_field_callback(); ?></td>
+						</tr>
+					</tbody></table>
+				</div>
+			</div>
+
+			<!-- 対象と除外 -->
+			<div class="postbox">
+				<h2 class="hndle">対象と除外</h2>
+				<div class="inside">
+					<table class="form-table"><tbody>
+						<tr>
+							<th scope="row">対象投稿タイプ</th>
+							<td><?php ksatl_post_types_field_callback(); ?></td>
+						</tr>
+						<tr>
+							<th scope="row">除外タグ</th>
+							<td><?php ksatl_excluded_tags_field_callback(); ?></td>
+						</tr>
+					</tbody></table>
+				</div>
+			</div>
+
+			<!-- スタイル設定 -->
+			<div class="postbox">
+				<h2 class="hndle">スタイル設定</h2>
+				<div class="inside">
+					<table class="form-table"><tbody>
+						<tr>
+							<th scope="row">リンクの文字色</th>
+							<td><?php ksatl_link_color_mode_field_callback(); ?></td>
+						</tr>
+						<tr>
+							<th scope="row">下線のスタイル</th>
+							<td><?php ksatl_link_underline_style_field_callback(); ?></td>
+						</tr>
+					</tbody></table>
+				</div>
+			</div>
+
+			<?php submit_button( '変更を保存' ); ?>
 		</form>
 	</div>
 	<?php
@@ -195,6 +300,19 @@ function ksatl_excluded_tags_field_callback() {
 	<?php
 }
 
+/** 自記事タグの除外フィールド */
+function ksatl_exclude_self_tags_field_callback() {
+	$options = get_option( KSATL_OPTION_NAME, ksatl_get_default_options() );
+	$exclude = isset( $options['exclude_self_tags'] ) ? (bool) $options['exclude_self_tags'] : true;
+	?>
+	<label for="ksatl_exclude_self_tags">
+		<input type="checkbox" id="ksatl_exclude_self_tags" name="<?php echo esc_attr( KSATL_OPTION_NAME ); ?>[exclude_self_tags]" value="1" <?php checked( $exclude, true ); ?>>
+		記事自身に付与されたタグへのリンクを除外する
+	</label>
+	<p class="description">有効にすると、その記事に付与済みのタグはリンクに変換されません。無効にすると、自記事のタグもリンク対象になります。</p>
+	<?php
+}
+
 /** 対象投稿タイプフィールド */
 function ksatl_post_types_field_callback() {
 	$options = get_option( KSATL_OPTION_NAME, ksatl_get_default_options() );
@@ -207,17 +325,16 @@ function ksatl_post_types_field_callback() {
 		<button type="button" class="button button-small" id="ksatl-check-all">全チェック</button>
 		<button type="button" class="button button-small" id="ksatl-uncheck-all">全解除</button>
 	</p>
-	<?php
-	foreach ( $post_types as $post_type ) {
-		$checked = in_array( $post_type->name, $selected_types, true );
+	<div class="ksatl-post-types-grid">
+		<?php foreach ( $post_types as $post_type ) :
+			$checked = in_array( $post_type->name, $selected_types, true );
 		?>
-		<label style="display: block; margin-bottom: 5px;">
+		<label title="<?php echo esc_attr( $post_type->name ); ?>">
 			<input type="checkbox" class="ksatl-post-type-cb" name="<?php echo esc_attr( KSATL_OPTION_NAME ); ?>[post_types][]" value="<?php echo esc_attr( $post_type->name ); ?>" <?php checked( $checked, true ); ?>>
-			<?php echo esc_html( $post_type->labels->name ); ?> (<code><?php echo esc_html( $post_type->name ); ?></code>)
+			<?php echo esc_html( $post_type->labels->name ); ?>
 		</label>
-		<?php
-	}
-	?>
+		<?php endforeach; ?>
+	</div>
 	<p class="description">自動タグリンクを適用する投稿タイプを選択してください。</p>
 	<script>
 	document.getElementById('ksatl-check-all').addEventListener('click', function() {
@@ -313,6 +430,9 @@ function ksatl_sanitize_options( $input ) {
 	$new_input['excluded_tags'] = isset( $input['excluded_tags'] )
 		? wp_strip_all_tags( trim( $input['excluded_tags'] ) )
 		: '';
+
+	// 自記事タグの除外
+	$new_input['exclude_self_tags'] = ! empty( $input['exclude_self_tags'] );
 
 	// 対象投稿タイプ
 	if ( ! empty( $input['post_types'] ) && is_array( $input['post_types'] ) ) {
