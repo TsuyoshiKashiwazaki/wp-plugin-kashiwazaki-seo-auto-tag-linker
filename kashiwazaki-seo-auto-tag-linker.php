@@ -3,7 +3,7 @@
  * Plugin Name: Kashiwazaki SEO Auto Tag Linker
  * Plugin URI: https://www.tsuyoshikashiwazaki.jp
  * Description: 投稿コンテンツ内のタグ名に一致するテキストを自動的にタグアーカイブページへのリンクに変換し、内部リンク構造を強化するSEOプラグインです。
- * Version: 1.0.2
+ * Version: 1.0.3
  * Author: 柏崎剛 (Tsuyoshi Kashiwazaki)
  * Author URI: https://www.tsuyoshikashiwazaki.jp/profile/
  * Text Domain: kashiwazaki-seo-auto-tag-linker
@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 // 定数
 define( 'KSATL_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'KSATL_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
-define( 'KSATL_VERSION', '1.0.2' );
+define( 'KSATL_VERSION', '1.0.3' );
 define( 'KSATL_OPTION_NAME', 'ksatl_options' );
 define( 'KSATL_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
 
@@ -36,6 +36,7 @@ function ksatl_get_default_options() {
 		'link_color_mode'    => 'inherit',
 		'link_color_custom'  => '#333333',
 		'link_underline_style' => 'dashed',
+		'cache_duration'       => 86400,
 	);
 }
 
@@ -106,6 +107,15 @@ function ksatl_output_frontend_css() {
 	</style>
 	<?php
 }
+
+// タグキャッシュの無効化
+function ksatl_clear_tags_cache() {
+	delete_transient( 'ksatl_tags_cache' );
+}
+add_action( 'created_post_tag', 'ksatl_clear_tags_cache' );
+add_action( 'edited_post_tag', 'ksatl_clear_tags_cache' );
+add_action( 'delete_post_tag', 'ksatl_clear_tags_cache' );
+add_action( 'update_option_' . KSATL_OPTION_NAME, 'ksatl_clear_tags_cache' );
 
 // プラグイン一覧に設定リンクを追加
 add_filter( 'plugin_action_links_' . KSATL_PLUGIN_BASENAME, 'ksatl_add_settings_link' );

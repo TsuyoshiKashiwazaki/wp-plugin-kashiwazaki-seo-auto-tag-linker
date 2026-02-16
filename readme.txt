@@ -4,7 +4,7 @@ Tags: seo, internal-links, auto-link, tag-links, internal-linking
 Requires at least: 5.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.0.2
+Stable tag: 1.0.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -53,6 +53,12 @@ Kashiwazaki SEO Auto Tag Linker は、投稿コンテンツ内のタグ名を検
 2. 自動リンク動作例 - 投稿コンテンツ内のタグ名が自動的にリンクに変換されます
 
 == Changelog ==
+
+= 1.0.3 =
+* コア処理をシングルパスアルゴリズムに全面リファクタ（preg_split() をタグマッチごとから1回に削減）
+* タグリスト取得をTransient + static変数でキャッシュ化（URL事前解決含む）
+* タグキャッシュ保持時間の設定を追加（1h / 6h / 12h / 24h / 48h から選択可能）
+* タグ変更時・設定変更時のキャッシュ自動無効化フックを追加
 
 = 1.0.2 =
 * 自記事タグ除外オプションを追加（記事自身に付与されたタグへのリンクを除外するかを設定可能に）

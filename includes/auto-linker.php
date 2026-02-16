@@ -4,7 +4,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * the_content フィルターで自動タグリンクを挿入する
+ * the_content フィルターで自動タグリンクを挿入する（シングルパス最適化版）
+ *
+ * コンテンツを1回だけ preg_split() し、全タグをその配列上で処理する。
+ * タグマッチごとの分割・再結合を排除し、大幅にパフォーマンスを向上。
  */
 function ksatl_auto_link_tags( $content ) {
 	// ガード条件
@@ -28,211 +31,100 @@ function ksatl_auto_link_tags( $content ) {
 		return $content;
 	}
 
-	// 対象タグ一覧を取得
-	$tags = ksatl_get_eligible_tags( $options );
-	if ( empty( $tags ) ) {
+	// キャッシュ済みタグ一覧を取得（自記事タグ除外前のグローバルリスト）
+	$all_eligible_tags = ksatl_get_eligible_tags_cached( $options );
+	if ( empty( $all_eligible_tags ) ) {
 		return $content;
 	}
 
-	$max_per_tag = isset( $options['max_links_per_tag'] ) ? absint( $options['max_links_per_tag'] ) : 1;
-	$link_target = isset( $options['link_target'] ) ? $options['link_target'] : '_self';
+	$max_per_tag  = isset( $options['max_links_per_tag'] ) ? absint( $options['max_links_per_tag'] ) : 1;
+	$link_target  = isset( $options['link_target'] ) ? $options['link_target'] : '_self';
+	$exclude_self = isset( $options['exclude_self_tags'] ) ? (bool) $options['exclude_self_tags'] : true;
 
-	// <script>...</script> と <style>...</style> を一時退避（内部にHTML風文字列を含む可能性があるため）
-	$placeholders = array();
+	// 自記事タグを取得・除外
+	$current_tag_ids   = array();
+	$current_tag_names = array();
+	if ( $exclude_self ) {
+		$current_tags = get_the_tags();
+		if ( ! empty( $current_tags ) && ! is_wp_error( $current_tags ) ) {
+			$current_tag_ids   = wp_list_pluck( $current_tags, 'term_id' );
+			$current_tag_names = wp_list_pluck( $current_tags, 'name' );
+			// 長い順にソート（部分一致防止）
+			usort( $current_tag_names, function ( $a, $b ) {
+				return mb_strlen( $b ) - mb_strlen( $a );
+			} );
+		}
+	}
+
+	// キャッシュリストから自記事タグを除外
+	if ( ! empty( $current_tag_ids ) ) {
+		$eligible_tags = array();
+		foreach ( $all_eligible_tags as $tag ) {
+			if ( ! in_array( $tag->term_id, $current_tag_ids, true ) ) {
+				$eligible_tags[] = $tag;
+			}
+		}
+	} else {
+		$eligible_tags = $all_eligible_tags;
+	}
+
+	if ( empty( $eligible_tags ) ) {
+		return $content;
+	}
+
+	// Phase 1: <script>/<style> を一時退避
+	$script_placeholders = array();
 	$content = preg_replace_callback(
 		'/<(script|style)([\s>])(.*?)<\/\1\s*>/si',
-		function ( $match ) use ( &$placeholders ) {
-			$key = '<!--KSATL_PH_' . count( $placeholders ) . '-->';
-			$placeholders[ $key ] = $match[0];
+		function ( $match ) use ( &$script_placeholders ) {
+			$key = '<!--KSATL_PH_' . count( $script_placeholders ) . '-->';
+			$script_placeholders[ $key ] = $match[0];
 			return $key;
 		},
 		$content
 	);
 
-	$tag_placeholders = array();
-
-	// 現在記事のタグ名をプレースホルダーで保護（自記事タグが除外される場合、テキストとして残り部分一致の原因になる）
-	$exclude_self = isset( $options['exclude_self_tags'] ) ? (bool) $options['exclude_self_tags'] : true;
-	$current_tags = $exclude_self ? get_the_tags() : false;
-	if ( ! empty( $current_tags ) && ! is_wp_error( $current_tags ) ) {
-		$current_tag_names = wp_list_pluck( $current_tags, 'name' );
-		usort( $current_tag_names, function ( $a, $b ) {
-			return mb_strlen( $b ) - mb_strlen( $a );
-		} );
-		foreach ( $current_tag_names as $ctag_name ) {
-			if ( mb_strpos( $content, $ctag_name ) !== false ) {
-				$key = '<!--KSATL_TG' . count( $tag_placeholders ) . '-->';
-				$tag_placeholders[ $key ] = $ctag_name;
-				$content = ksatl_protect_tag_text( $content, $ctag_name, $key );
-			}
-		}
-	}
-
-	foreach ( $tags as $tag ) {
-		// コンテンツにタグ名が存在しなければスキップ（preg_split・DB問い合わせを回避）
-		if ( mb_strpos( $content, $tag->name ) === false ) {
-			continue;
-		}
-
-		$tag_url = get_term_link( $tag );
-		if ( is_wp_error( $tag_url ) ) {
-			continue;
-		}
-
-		$replaced = ksatl_replace_occurrences( $content, $tag->name, $tag_url, $max_per_tag, $link_target );
-		if ( $replaced !== false ) {
-			$content = $replaced;
-		}
-
-		// 未リンクのタグ名をプレースホルダーで保護（短いタグの部分一致を防止）
-		if ( mb_strpos( $content, $tag->name ) !== false ) {
-			$key = '<!--KSATL_TG' . count( $tag_placeholders ) . '-->';
-			$tag_placeholders[ $key ] = $tag->name;
-			$content = ksatl_protect_tag_text( $content, $tag->name, $key );
-		}
-	}
-
-	// タグ名プレースホルダーを復元（短いタグの部分一致防止用）
-	if ( ! empty( $tag_placeholders ) ) {
-		$content = str_replace( array_keys( $tag_placeholders ), array_values( $tag_placeholders ), $content );
-	}
-
-	// プレースホルダーを復元
-	if ( ! empty( $placeholders ) ) {
-		$content = str_replace( array_keys( $placeholders ), array_values( $placeholders ), $content );
-	}
-
-	return $content;
-}
-
-/**
- * 自動リンク対象のタグ一覧を取得する
- */
-function ksatl_get_eligible_tags( $options ) {
-	// 全タグを取得
-	$all_tags = get_tags( array( 'hide_empty' => true ) );
-	if ( empty( $all_tags ) || is_wp_error( $all_tags ) ) {
-		return array();
-	}
-
-	// 現在記事のタグIDを取得（設定で除外が有効な場合のみ）
-	$exclude_self = isset( $options['exclude_self_tags'] ) ? (bool) $options['exclude_self_tags'] : true;
-	$current_tag_ids = array();
-	if ( $exclude_self ) {
-		$current_tags = get_the_tags();
-		if ( ! empty( $current_tags ) && ! is_wp_error( $current_tags ) ) {
-			$current_tag_ids = wp_list_pluck( $current_tags, 'term_id' );
-		}
-	}
-
-	// 除外タグリストを準備
-	$excluded_list = array();
-	if ( ! empty( $options['excluded_tags'] ) ) {
-		$excluded_list = array_map( 'trim', explode( ',', $options['excluded_tags'] ) );
-		$excluded_list = array_map( 'mb_strtolower', $excluded_list );
-		$excluded_list = array_filter( $excluded_list );
-	}
-
-	$min_length = isset( $options['min_tag_length'] ) ? absint( $options['min_tag_length'] ) : 3;
-
-	// フィルタリング
-	$eligible_tags = array();
-	foreach ( $all_tags as $tag ) {
-		// 現在記事のタグは除外
-		if ( in_array( $tag->term_id, $current_tag_ids, true ) ) {
-			continue;
-		}
-
-		// 最小文字数チェック
-		if ( mb_strlen( $tag->name ) < $min_length ) {
-			continue;
-		}
-
-		// 除外タグリストチェック
-		if ( in_array( mb_strtolower( $tag->name ), $excluded_list, true ) ) {
-			continue;
-		}
-
-		$eligible_tags[] = $tag;
-	}
-
-	// 名前の長さ降順でソート（長いタグ優先 → 部分一致防止）
-	usort( $eligible_tags, function ( $a, $b ) {
-		return mb_strlen( $b->name ) - mb_strlen( $a->name );
-	} );
-
-	return $eligible_tags;
-}
-
-/**
- * テキストノード内のタグ名をプレースホルダーに置換する（リンク内は除外）
- *
- * 長いタグを処理した後、残りの未リンク出現箇所をプレースホルダーで保護し、
- * 短いタグによる部分一致を防止する。
- */
-function ksatl_protect_tag_text( $content, $tag_name, $placeholder ) {
-	$parts = preg_split( '/(<[^>]+>)/s', $content, -1, PREG_SPLIT_DELIM_CAPTURE );
-	$inside_a = 0;
-
-	foreach ( $parts as $i => $part ) {
-		if ( isset( $part[0] ) && $part[0] === '<' ) {
-			if ( preg_match( '/^<a[\s>]/i', $part ) ) {
-				$inside_a++;
-			} elseif ( stripos( $part, '</a' ) === 0 ) {
-				$inside_a = max( 0, $inside_a - 1 );
-			}
-			continue;
-		}
-
-		if ( $inside_a > 0 ) {
-			continue;
-		}
-
-		if ( mb_strpos( $part, $tag_name ) !== false ) {
-			$parts[ $i ] = str_replace( $tag_name, $placeholder, $part );
-		}
-	}
-
-	return implode( '', $parts );
-}
-
-/**
- * コンテンツ内のタグ名を最大N回までリンクに置換する
- *
- * HTMLタグを分割し、テキスト部分のみで検索・置換を行う。
- * <a>タグ内、<h1>-<h6>タグ内、および特殊タグ内は置換しない。
- * ※ <script>/<style> は呼び出し元で事前に退避済み。
- *
- * @param string $content  コンテンツHTML
- * @param string $tag_name タグ名
- * @param string $tag_url  タグアーカイブURL
- * @param int    $max      最大置換回数
- * @param string $link_target リンクターゲット
- * @return string|false 置換後のコンテンツ、または未発見の場合 false
- */
-function ksatl_replace_occurrences( $content, $tag_name, $tag_url, $max = 1, $link_target = '_self' ) {
-	// HTMLタグとテキストに分割
+	// Phase 2: コンテンツを1回だけ分割
 	$parts = preg_split( '/(<[^>]+>)/s', $content, -1, PREG_SPLIT_DELIM_CAPTURE );
 
-	$inside_a       = 0;
-	$inside_heading = 0;
-	$inside_skip    = 0;
-	$replace_count  = 0;
+	// プレースホルダー管理
+	$ph_counter        = 0;
+	$link_placeholders = array();
+	$tag_placeholders  = array();
 
-	// 置換を行わない特殊タグ一覧（script/style は呼び出し元で退避済み）
-	$skip_tags = array( 'code', 'pre', 'textarea', 'select', 'button', 'svg', 'iframe', 'noscript', 'template', 'canvas', 'video', 'audio', 'object' );
+	// 自記事タグ用プレースホルダーを事前作成（長い順）
+	$self_tag_phs = array();
+	foreach ( $current_tag_names as $ctag_name ) {
+		$key                          = '<!--KSATL_TG' . $ph_counter++ . '-->';
+		$self_tag_phs[ $ctag_name ]   = $key;
+		$tag_placeholders[ $key ]     = $ctag_name;
+	}
 
+	// 対象タグ用保護プレースホルダーを事前作成（長い順、eligible_tags はソート済み）
+	$eligible_tag_phs = array();
+	foreach ( $eligible_tags as $tag ) {
+		$key                              = '<!--KSATL_TG' . $ph_counter++ . '-->';
+		$eligible_tag_phs[ $tag->name ]   = $key;
+		$tag_placeholders[ $key ]         = $tag->name;
+	}
+
+	// リンクHTML生成用の属性
 	$target_attr = ( $link_target === '_blank' )
 		? ' target="_blank" rel="noopener noreferrer"'
 		: '';
-	$link = '<a href="' . esc_url( $tag_url ) . '" class="ksatl-auto-link"' . $target_attr . '>' . esc_html( $tag_name ) . '</a>';
 
+	// グローバル置換カウンター（テキストノードを跨いでカウント）
+	$replace_counts = array();
+
+	// コンテキスト追跡
+	$inside_a       = 0;
+	$inside_heading = 0;
+	$inside_skip    = 0;
+	$skip_tags      = array( 'code', 'pre', 'textarea', 'select', 'button', 'svg', 'iframe', 'noscript', 'template', 'canvas', 'video', 'audio', 'object' );
+
+	// Phase 3: パーツをイテレートし、テキストノードで全タグを一括処理
 	foreach ( $parts as $i => $part ) {
-		if ( $replace_count >= $max ) {
-			break;
-		}
-
-		// HTMLタグ部分の場合、状態を追跡
+		// HTMLタグ部分の場合、コンテキストを追跡
 		if ( isset( $part[0] ) && $part[0] === '<' ) {
 			// <a> タグの追跡
 			if ( preg_match( '/^<a[\s>]/i', $part ) ) {
@@ -264,34 +156,153 @@ function ksatl_replace_occurrences( $content, $tag_name, $tag_url, $max = 1, $li
 			continue;
 		}
 
-		// <a>タグ内、見出しタグ内、または特殊タグ内はスキップ
+		// 保護コンテキスト内はスキップ
 		if ( $inside_a > 0 || $inside_heading > 0 || $inside_skip > 0 ) {
 			continue;
 		}
 
-		// テキスト部分でタグ名を検索（同一テキストノード内で複数回置換する可能性あり）
-		$new_part = '';
-		$remaining = $part;
+		$text = $part;
 
-		while ( $replace_count < $max ) {
-			$pos = mb_strpos( $remaining, $tag_name );
-			if ( $pos === false ) {
-				break;
+		// 自記事タグ名をプレースホルダーで保護（長い順）
+		foreach ( $self_tag_phs as $name => $ph ) {
+			if ( mb_strpos( $text, $name ) !== false ) {
+				$text = str_replace( $name, $ph, $text );
+			}
+		}
+
+		// 対象タグを処理（長い順、eligible_tags はソート済み）
+		foreach ( $eligible_tags as $tag ) {
+			if ( mb_strpos( $text, $tag->name ) === false ) {
+				continue;
 			}
 
-			$new_part .= mb_substr( $remaining, 0, $pos ) . $link;
-			$remaining = mb_substr( $remaining, $pos + mb_strlen( $tag_name ) );
-			$replace_count++;
+			if ( ! isset( $replace_counts[ $tag->name ] ) ) {
+				$replace_counts[ $tag->name ] = 0;
+			}
+
+			$remaining = $max_per_tag - $replace_counts[ $tag->name ];
+
+			// リンク置換（max_per_tag 未達の場合）
+			if ( $remaining > 0 ) {
+				$link_html = '<a href="' . esc_url( $tag->url ) . '" class="ksatl-auto-link"' . $target_attr . '>' . esc_html( $tag->name ) . '</a>';
+				$count     = 0;
+				$result    = '';
+				$search    = $text;
+
+				while ( $count < $remaining ) {
+					$pos = mb_strpos( $search, $tag->name );
+					if ( $pos === false ) {
+						break;
+					}
+
+					$lk_key                       = '<!--KSATL_LK' . count( $link_placeholders ) . '-->';
+					$link_placeholders[ $lk_key ] = $link_html;
+					$result .= mb_substr( $search, 0, $pos ) . $lk_key;
+					$search  = mb_substr( $search, $pos + mb_strlen( $tag->name ) );
+					$count++;
+				}
+
+				$text = $result . $search;
+				$replace_counts[ $tag->name ] += $count;
+			}
+
+			// 残りをプレースホルダーで保護（短いタグの部分一致防止）
+			if ( mb_strpos( $text, $tag->name ) !== false ) {
+				$text = str_replace( $tag->name, $eligible_tag_phs[ $tag->name ], $text );
+			}
 		}
 
-		if ( $new_part !== '' ) {
-			$parts[ $i ] = $new_part . $remaining;
+		$parts[ $i ] = $text;
+	}
+
+	// Phase 4: 再結合
+	$content = implode( '', $parts );
+
+	// Phase 5: プレースホルダー復元（リンク → タグ名 → script/style の順）
+	if ( ! empty( $link_placeholders ) ) {
+		$content = str_replace( array_keys( $link_placeholders ), array_values( $link_placeholders ), $content );
+	}
+
+	if ( ! empty( $tag_placeholders ) ) {
+		$content = str_replace( array_keys( $tag_placeholders ), array_values( $tag_placeholders ), $content );
+	}
+
+	if ( ! empty( $script_placeholders ) ) {
+		$content = str_replace( array_keys( $script_placeholders ), array_values( $script_placeholders ), $content );
+	}
+
+	return $content;
+}
+
+/**
+ * 自動リンク対象のタグ一覧をキャッシュ付きで取得する
+ *
+ * static変数（同一リクエスト内キャッシュ）+ WordPress Transient（クロスリクエストキャッシュ）。
+ * URL事前解決済み。自記事タグの除外は呼び出し元で行う。
+ */
+function ksatl_get_eligible_tags_cached( $options ) {
+	static $cached = null;
+	if ( $cached !== null ) {
+		return $cached;
+	}
+
+	$cache_duration = isset( $options['cache_duration'] ) ? absint( $options['cache_duration'] ) : 86400;
+	$transient_key  = 'ksatl_tags_cache';
+
+	if ( $cache_duration > 0 ) {
+		$cached = get_transient( $transient_key );
+		if ( $cached !== false ) {
+			return $cached;
 		}
 	}
 
-	if ( $replace_count > 0 ) {
-		return implode( '', $parts );
+	$all_tags = get_tags( array( 'hide_empty' => true ) );
+	if ( empty( $all_tags ) || is_wp_error( $all_tags ) ) {
+		$cached = array();
+		if ( $cache_duration > 0 ) {
+			set_transient( $transient_key, $cached, $cache_duration );
+		}
+		return $cached;
 	}
 
-	return false;
+	$min_length    = isset( $options['min_tag_length'] ) ? absint( $options['min_tag_length'] ) : 3;
+	$excluded_list = array();
+	if ( ! empty( $options['excluded_tags'] ) ) {
+		$excluded_list = array_map( 'trim', explode( ',', $options['excluded_tags'] ) );
+		$excluded_list = array_map( 'mb_strtolower', $excluded_list );
+		$excluded_list = array_filter( $excluded_list );
+	}
+
+	$eligible = array();
+	foreach ( $all_tags as $tag ) {
+		if ( mb_strlen( $tag->name ) < $min_length ) {
+			continue;
+		}
+
+		if ( in_array( mb_strtolower( $tag->name ), $excluded_list, true ) ) {
+			continue;
+		}
+
+		$url = get_term_link( $tag );
+		if ( is_wp_error( $url ) ) {
+			continue;
+		}
+
+		$eligible[] = (object) array(
+			'term_id' => $tag->term_id,
+			'name'    => $tag->name,
+			'url'     => $url,
+		);
+	}
+
+	// 名前の長さ降順でソート（長いタグ優先 → 部分一致防止）
+	usort( $eligible, function ( $a, $b ) {
+		return mb_strlen( $b->name ) - mb_strlen( $a->name );
+	} );
+
+	$cached = $eligible;
+	if ( $cache_duration > 0 ) {
+		set_transient( $transient_key, $eligible, $cache_duration );
+	}
+	return $cached;
 }

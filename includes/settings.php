@@ -101,6 +101,14 @@ function ksatl_register_settings() {
 		'ksatl_general_section'
 	);
 
+	add_settings_field(
+		'ksatl_cache_duration_field',
+		'タグキャッシュ保持時間',
+		'ksatl_cache_duration_field_callback',
+		'ksatl_settings_page',
+		'ksatl_general_section'
+	);
+
 	// スタイル設定セクション
 	add_settings_section(
 		'ksatl_style_section',
@@ -175,6 +183,10 @@ function ksatl_render_settings_page() {
 							<th scope="row">自動タグリンク機能</th>
 							<td><?php ksatl_enabled_field_callback(); ?></td>
 						</tr>
+					<tr>
+						<th scope="row">タグキャッシュ保持時間</th>
+						<td><?php ksatl_cache_duration_field_callback(); ?></td>
+					</tr>
 					</tbody></table>
 				</div>
 			</div>
@@ -347,6 +359,29 @@ function ksatl_post_types_field_callback() {
 	<?php
 }
 
+/** タグキャッシュ保持時間フィールド */
+function ksatl_cache_duration_field_callback() {
+	$options  = get_option( KSATL_OPTION_NAME, ksatl_get_default_options() );
+	$duration = isset( $options['cache_duration'] ) ? absint( $options['cache_duration'] ) : 86400;
+
+	$choices = array(
+		0      => 'なし（キャッシュ無効）',
+		3600   => '1時間',
+		21600  => '6時間',
+		43200  => '12時間',
+		86400  => '24時間（デフォルト）',
+		172800 => '48時間',
+	);
+	?>
+	<select id="ksatl_cache_duration" name="<?php echo esc_attr( KSATL_OPTION_NAME ); ?>[cache_duration]">
+		<?php foreach ( $choices as $value => $label ) : ?>
+			<option value="<?php echo esc_attr( $value ); ?>" <?php selected( $duration, $value ); ?>><?php echo esc_html( $label ); ?></option>
+		<?php endforeach; ?>
+	</select>
+	<p class="description">タグ一覧とURLをキャッシュする時間です。タグの追加・編集・削除時にはキャッシュは自動的にクリアされます。</p>
+	<?php
+}
+
 /** リンクの文字色モードフィールド */
 function ksatl_link_color_mode_field_callback() {
 	$options    = get_option( KSATL_OPTION_NAME, ksatl_get_default_options() );
@@ -458,6 +493,12 @@ function ksatl_sanitize_options( $input ) {
 	if ( ! $new_input['link_color_custom'] ) {
 		$new_input['link_color_custom'] = $defaults['link_color_custom'];
 	}
+
+	// キャッシュ保持時間
+	$allowed_durations = array( 0, 3600, 21600, 43200, 86400, 172800 );
+	$new_input['cache_duration'] = ( isset( $input['cache_duration'] ) && in_array( (int) $input['cache_duration'], $allowed_durations, true ) )
+		? (int) $input['cache_duration']
+		: $defaults['cache_duration'];
 
 	// 下線のスタイル
 	$allowed_styles = array( 'solid', 'dashed', 'dotted', 'double', 'wavy', 'none' );

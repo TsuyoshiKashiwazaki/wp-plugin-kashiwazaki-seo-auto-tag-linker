@@ -3,6 +3,17 @@
 このプロジェクトのすべての変更はこのファイルに記録されます。
 フォーマットは [Keep a Changelog](https://keepachangelog.com/ja/1.0.0/) に基づいています。
 
+## [1.0.3] - 2026-02-16
+
+### Changed
+- コア処理をシングルパスアルゴリズムに全面リファクタ（`preg_split()` をタグマッチごとから1回に削減）
+- タグリスト取得をTransient + static変数でキャッシュ化（URL事前解決含む）
+- `ksatl_replace_occurrences()` / `ksatl_protect_tag_text()` を廃止しメイン関数に統合
+
+### Added
+- タグキャッシュ保持時間の設定（1h / 6h / 12h / 24h / 48h から選択可能）
+- タグ変更時・設定変更時のキャッシュ自動無効化フック
+
 ## [1.0.2] - 2026-02-11
 
 ### Added
@@ -38,6 +49,7 @@
 - 特殊HTMLタグ内のテキストを自動リンク対象外にする安全処理（`<a>`, `<h1>`〜`<h6>`, `<script>`, `<style>`, `<code>`, `<pre>`, `<textarea>`, `<select>`, `<button>`, `<svg>`, `<iframe>`, `<canvas>`, `<video>`, `<audio>`, `<object>`, `<noscript>`, `<template>`）
 - 管理画面からの設定ページ
 
-[1.0.2]: https://github.com/TsuyoshiKashiwazaki/wp-plugin-kashiwazaki-seo-auto-tag-linker/releases/tag/v1.0.2-dev
+[1.0.3]: https://github.com/TsuyoshiKashiwazaki/wp-plugin-kashiwazaki-seo-auto-tag-linker/releases/tag/v1.0.3-dev
+[1.0.2]: https://github.com/TsuyoshiKashiwazaki/wp-plugin-kashiwazaki-seo-auto-tag-linker/releases/tag/v1.0.2
 [1.0.1]: https://github.com/TsuyoshiKashiwazaki/wp-plugin-kashiwazaki-seo-auto-tag-linker/releases/tag/v1.0.1
 [1.0.0]: https://github.com/TsuyoshiKashiwazaki/wp-plugin-kashiwazaki-seo-auto-tag-linker/releases/tag/v1.0.0
