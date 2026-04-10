@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>詳細設定 - Kashiwazaki SEO Auto Tag Linker マニュアル</title>
+    <link rel="stylesheet" href="css/style.css?v=1">
+</head>
+<body>
+<button class="hamburger-btn" aria-label="メニュー">&#9776;</button>
+
+<nav class="sidebar">
+    <div class="sidebar-header">
+        <h2 style="color:#fff;">Auto Tag Linker</h2>
+        <span class="version">v1.0.3</span>
+        <img src="images/main-visual.png" alt="" style="width:100%;border-radius:4px;margin-top:8px;">
+    </div>
+    <ul>
+        <li><a href="index.html">概要</a></li>
+        <li><a href="setup.html">インストール・初期設定</a></li>
+        <li class="active"><a href="tag-linker-settings.html">詳細設定</a></li>
+        <li><a href="troubleshooting.html">トラブルシューティング</a></li>
+    </ul>
+</nav>
+
+<main class="content">
+    <h1>詳細設定</h1>
+    <p class="lead">タグ除外設定、セルフリンク防止、キャッシュ機能など、Kashiwazaki SEO Auto Tag Linker の詳細な設定項目を解説します。</p>
+
+    <h2>タグ除外設定</h2>
+
+    <p>特定のタグを自動リンク変換の対象から除外できます。一般的すぎるタグや、リンク化が不適切なタグを除外リストに登録してください。</p>
+
+    <figure class="screenshot">
+        <img src="images/screenshots/02-taglinker-detail.png" alt="タグリンカー設定" class="lightbox-trigger">
+        <figcaption>自動タグリンクの設定画面</figcaption>
+    </figure>
+
+    <h3>フロントエンド表示例</h3>
+    <figure class="screenshot">
+        <img src="images/screenshots/03-frontend-taglinker.png" alt="タグの自動リンク化が適用された投稿ページ" class="lightbox-trigger">
+        <figcaption>投稿内のタグが自動的にリンク化された表示例</figcaption>
+    </figure>
+
+    <h3>除外タグの登録</h3>
+
+    <div class="step">
+        <span class="step-number">1</span>
+        <div class="step-body">
+            <p>設定画面の「除外タグ」セクションに移動します。</p>
+        </div>
+    </div>
+
+    <div class="step">
+        <span class="step-number">2</span>
+        <div class="step-body">
+            <p>除外したいタグ名を入力フィールドに入力します。複数のタグはカンマ区切りで入力できます。</p>
+        </div>
+    </div>
+
+    <div class="step">
+        <span class="step-number">3</span>
+        <div class="step-body">
+            <p>「設定を保存」をクリックして変更を反映します。</p>
+        </div>
+    </div>
+
+    <div class="callout callout-tip">
+        <div class="callout-title">ヒント</div>
+        <p>除外タグには、サイト名やブランド名など、タグアーカイブへのリンクが不要なタグを登録することを推奨します。</p>
+    </div>
+
+    <h2>セルフリンク防止</h2>
+
+    <p>セルフリンク防止機能を有効にすると、投稿が属するタグのアーカイブページへのリンクが自動的に無効化されます。例えば、タグ「WordPress」が付いた投稿内で「WordPress」というテキストがリンク化されるのを防ぎます。</p>
+
+    <table>
+        <thead>
+            <tr>
+                <th style="width:35%;">設定</th>
+                <th>説明</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>有効</td>
+                <td>投稿自身が属するタグへのリンクを生成しません。ユーザーが閲覧中のタグアーカイブページへの冗長なリンクを防ぎます。</td>
+            </tr>
+            <tr>
+                <td>無効</td>
+                <td>すべてのタグを等しくリンク対象とします。セルフリンクも生成されます。</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="callout callout-note">
+        <div class="callout-title">補足</div>
+        <p>セルフリンク防止はSEOの観点からも推奨されます。自分自身へのリンクはリンクエクイティの分配に寄与せず、ユーザー体験を損なう可能性があります。</p>
+    </div>
+
+    <h2>リンク変換の動作詳細</h2>
+
+    <p>プラグインは投稿コンテンツのフィルタリング時に以下の手順でタグリンクを生成します。</p>
+
+    <div class="step">
+        <span class="step-number">1</span>
+        <div class="step-body">
+            <p>投稿に関連するすべてのタグを取得し、除外リストと最小文字数フィルタを適用します。</p>
+        </div>
+    </div>
+
+    <div class="step">
+        <span class="step-number">2</span>
+        <div class="step-body">
+            <p>投稿コンテンツ内でタグ名をテキスト検索し、HTMLタグ内（属性値やタグ名）の一致を除外します。</p>
+        </div>
+    </div>
+
+    <div class="step">
+        <span class="step-number">3</span>
+        <div class="step-body">
+            <p>一致したテキストをタグアーカイブURLへのリンクに変換します。最大リンク数に達した時点で変換を停止します。</p>
+        </div>
+    </div>
+
+    <div class="step">
+        <span class="step-number">4</span>
+        <div class="step-body">
+            <p>設定されたリンクスタイル（色・下線）をインラインCSS経由で適用します。</p>
+        </div>
+    </div>
+
+    <h2>キャッシュ機能</h2>
+
+    <p>タグデータのキャッシュにより、大量のタグが登録されたサイトでもリンク変換のパフォーマンスを維持します。</p>
+
+    <table>
+        <thead>
+            <tr>
+                <th style="width:35%;">項目</th>
+                <th>詳細</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>キャッシュ対象</td>
+                <td>タグ一覧とタグアーカイブURLのマッピングデータ</td>
+            </tr>
+            <tr>
+                <td>キャッシュ更新</td>
+                <td>タグの追加・編集・削除時に自動的に更新されます。</td>
+            </tr>
+            <tr>
+                <td>パフォーマンス効果</td>
+                <td>ページ表示ごとのデータベースクエリを削減し、レスポンス時間を短縮します。</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>HTML要素の保護</h2>
+
+    <p>プラグインはコンテンツ内のHTMLタグを適切に処理し、以下の要素内のテキストはリンク変換の対象外とします。</p>
+
+    <ul>
+        <li>既存のリンク（<code>&lt;a&gt;</code> タグ内のテキスト）</li>
+        <li>見出し（<code>&lt;h1&gt;</code>〜<code>&lt;h6&gt;</code> タグ内のテキスト）</li>
+        <li>コードブロック（<code>&lt;code&gt;</code>、<code>&lt;pre&gt;</code> タグ内のテキスト）</li>
+        <li>画像のalt属性やtitle属性</li>
+    </ul>
+
+    <div class="callout callout-warning">
+        <div class="callout-title">注意</div>
+        <p>カスタムHTMLブロックやショートコード出力内のテキストもリンク変換の対象となります。特定のコンテンツ領域でリンク変換を無効にしたい場合は、除外タグ設定をご利用ください。</p>
+    </div>
+
+    <nav class="page-nav">
+        <a href="setup.html" class="prev">&laquo; インストール・初期設定</a>
+        <a href="troubleshooting.html" class="next">トラブルシューティング &raquo;</a>
+    </nav>
+
+    <footer class="manual-footer">
+        <p>作者: <a href="https://www.tsuyoshikashiwazaki.jp/profile/" target="_blank" rel="noopener">柏崎剛（Tsuyoshi Kashiwazaki）</a></p>
+        <p>プラグイン: Kashiwazaki SEO Auto Tag Linker v1.0.3</p>
+    </footer>
+</main>
+
+<div class="lightbox"></div>
+<script src="js/manual.js?v=1"></script>
+</body>
+</html>

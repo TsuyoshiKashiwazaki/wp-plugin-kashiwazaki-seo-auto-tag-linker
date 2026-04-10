@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>概要 - Kashiwazaki SEO Auto Tag Linker マニュアル</title>
+    <link rel="stylesheet" href="css/style.css?v=1">
+</head>
+<body>
+<button class="hamburger-btn" aria-label="メニュー">&#9776;</button>
+
+<nav class="sidebar">
+    <div class="sidebar-header">
+        <h2 style="color:#fff;">Auto Tag Linker</h2>
+        <span class="version">v1.0.3</span>
+        <img src="images/main-visual.png" alt="" style="width:100%;border-radius:4px;margin-top:8px;">
+    </div>
+    <ul>
+        <li class="active"><a href="index.html">概要</a></li>
+        <li><a href="setup.html">インストール・初期設定</a></li>
+        <li><a href="tag-linker-settings.html">詳細設定</a></li>
+        <li><a href="troubleshooting.html">トラブルシューティング</a></li>
+    </ul>
+</nav>
+
+<main class="content">
+    <h1>Kashiwazaki SEO Auto Tag Linker マニュアル</h1>
+    <img src="images/main-visual.png" alt="Kashiwazaki SEO Auto Tag Linker メインビジュアル" style="width:100%;border-radius:6px;margin-bottom:16px;">
+    <p class="lead">Kashiwazaki SEO Auto Tag Linker は、WordPress投稿内のタグを自動検出し、タグアーカイブページへの内部リンクに変換するSEOプラグインです。リンクスタイルのカスタマイズ、タグ除外、最小文字数フィルタリングなど、細かなリンク制御が可能です。</p>
+
+    <p>タグに基づく内部リンクの自動生成は、サイト内のコンテンツ間の関連性を強化し、クロール効率を向上させます。本プラグインは投稿内のタグを自動検出してタグアーカイブへのリンクに変換し、リンクスタイルのカスタマイズにも対応します。</p>
+
+    <h2>主な機能</h2>
+
+    <div class="feature-cards">
+        <div class="feature-card">
+            <span class="icon">&#128279;</span>
+            <h4>自動タグリンク</h4>
+            <p>投稿内のタグを自動検出しタグアーカイブへの内部リンクに変換</p>
+        </div>
+        <div class="feature-card">
+            <span class="icon">&#127912;</span>
+            <h4>リンク設定</h4>
+            <p>リンク色・下線スタイル・最大リンク数・最小文字数を細かく設定</p>
+        </div>
+        <div class="feature-card">
+            <span class="icon">&#128683;</span>
+            <h4>除外管理</h4>
+            <p>特定タグの除外やセルフリンク防止で不要なリンクを抑制</p>
+        </div>
+    </div>
+
+    <h2>プラグインの特長</h2>
+
+    <ul>
+        <li>投稿コンテンツ内のタグ名を自動検出しタグアーカイブへのリンクに変換</li>
+        <li>リンクの色（カラーコード指定）と下線スタイルをカスタマイズ可能</li>
+        <li>1投稿あたりの最大リンク数を設定して過剰なリンクを防止</li>
+        <li>最小文字数フィルタにより短すぎるタグのリンク化を抑制</li>
+        <li>特定タグを除外リストに登録して意図しないリンクを回避</li>
+        <li>セルフリンク防止機能（自分自身のタグアーカイブへのリンクを無効化）</li>
+        <li>複数の投稿タイプに対応（投稿、固定ページ、カスタム投稿タイプ）</li>
+        <li>キャッシュ機能により大量のタグがあるサイトでもパフォーマンスを維持</li>
+        <li>フロントエンドはインラインCSSのみ、JavaScriptなし</li>
+    </ul>
+
+    <figure class="infographic">
+        <img src="images/infographics/overview-flow.png" alt="プラグイン概要フロー図">
+        <figcaption>Kashiwazaki SEO Auto Tag Linker の全体フロー</figcaption>
+    </figure>
+
+    <h2>SEO・GEO（生成AI最適化）への効果</h2>
+
+    <h3>内部リンク構造の強化</h3>
+    <p>タグベースの自動内部リンクは、サイト内のナビゲーションを改善し、リンクエクイティ（リンクジュース）をサイト全体に適切に分配します。関連するコンテンツ同士がタグを通じてリンクされることで、検索エンジンがサイトの主題構造をより深く理解できるようになります。</p>
+
+    <h3>セマンティックな関連性の構築</h3>
+    <p>タグベースのリンクは、コンテンツ間の意味的なつながりを作ります。同じタグを共有する記事がリンクで結ばれることで、トピッククラスターが自然に形成され、サイト全体のトピカルオーソリティが向上します。</p>
+
+    <h3>低品質リンクの防止</h3>
+    <p>最小文字数フィルタにより、1〜2文字の短すぎるタグが無意味なリンクになることを防ぎます。これにより、ユーザー体験を損なわない高品質な内部リンク構造を維持できます。</p>
+
+    <h3>生成AI（GEO）への対応</h3>
+    <p>適切にリンクされたコンテンツは、AIがサイト内のトピック関係を理解するのに役立ちます。タグベースの内部リンクにより、AIはページ間の主題的なつながりを把握し、サイト全体のコンテンツ構造をより正確に認識できるようになります。</p>
+
+    <h2>目次（マニュアル構成）</h2>
+
+    <table>
+        <thead>
+            <tr>
+                <th style="width:35%;">ページ</th>
+                <th>内容</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><a href="index.html">概要</a></td>
+                <td>プラグインの機能概要、SEO/GEO効果、動作要件</td>
+            </tr>
+            <tr>
+                <td><a href="setup.html">インストール・初期設定</a></td>
+                <td>インストール手順、リンクスタイル・対象投稿タイプの基本設定</td>
+            </tr>
+            <tr>
+                <td><a href="tag-linker-settings.html">詳細設定</a></td>
+                <td>タグ除外、最小文字数、最大リンク数、セルフリンク防止の設定</td>
+            </tr>
+            <tr>
+                <td><a href="troubleshooting.html">トラブルシューティング</a></td>
+                <td>よくある問題と対処法、動作要件、技術仕様、アーキテクチャ</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>動作要件</h2>
+
+    <table>
+        <thead>
+            <tr>
+                <th style="width:35%;">項目</th>
+                <th>要件</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>WordPress</td>
+                <td>5.0 以上</td>
+            </tr>
+            <tr>
+                <td>PHP</td>
+                <td>7.4 以上</td>
+            </tr>
+            <tr>
+                <td>対応ブラウザ</td>
+                <td>Chrome、Firefox、Safari、Edge（最新版）</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="callout callout-tip">
+        <div class="callout-title">ヒント</div>
+        <p>インストール後すぐに使い始めたい場合は、<a href="setup.html">インストール・初期設定</a>ページに進んでください。</p>
+    </div>
+
+    <nav class="page-nav">
+        <span></span>
+        <a href="setup.html" class="next">インストール・初期設定 &raquo;</a>
+    </nav>
+
+    <footer class="manual-footer">
+        <p>作者: <a href="https://www.tsuyoshikashiwazaki.jp/profile/" target="_blank" rel="noopener">柏崎剛（Tsuyoshi Kashiwazaki）</a></p>
+        <p>プラグイン: Kashiwazaki SEO Auto Tag Linker v1.0.3</p>
+    </footer>
+</main>
+
+<div class="lightbox"></div>
+<script src="js/manual.js?v=1"></script>
+</body>
+</html>
